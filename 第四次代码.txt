@@ -1,0 +1,184 @@
+1.平滑实现
+%图像test1
+I1=imread('test1.pgm');
+subplot(141);imshow(I1);title('原图');
+%高斯滤波器（编程实现）
+t3=gauss(3,1.5);
+g31=filt(I1,t3);
+subplot(242);imshow(uint8(g31));title('3*3高斯');
+t5=gauss(5,1.5);
+g51=filt(I1,t5);
+subplot(243);imshow(uint8(g51));title('5*5高斯');
+t7=gauss(7,1.5);
+g71=filt(I1,t7);
+subplot(244);imshow(uint8(g71));title('7*7高斯');
+%中值滤波器 （编程实现）
+o31=medfilter(I1,3);
+subplot(246);imshow(uint8(o31));title('3*3中值');
+o51=medfilter(I1,5);
+subplot(247);imshow(uint8(o51));title('5*5中值');
+o71=medfilter(I1,7);
+subplot(248);imshow(uint8(o71));title('7*7中值');
+
+figure(2)
+I2=imread('test2.tif');
+subplot(141);imshow(I2);title('原图');
+%高斯滤波器（编程实现）
+g32=filt(I2,t3);
+subplot(242);imshow(uint8(g32));title('3*3高斯');
+g52=filt(I2,t5);
+subplot(243);imshow(uint8(g52));title('5*5高斯');
+g72=filt(I2,t7);
+subplot(244);imshow(uint8(g72));title('7*7高斯');
+%中值滤波器(编程实现)
+o32=medfilter(I2,3);
+subplot(246);imshow(uint8(o32));title('3*3中值');
+o52=medfilter(I2,5);
+subplot(247);imshow(uint8(o52));title('5*5中值');
+o72=medfilter(I2,7);
+subplot(248);imshow(uint8(o72));title('7*7中值');
+
+中值滤波函数
+function [ o ] = medfilter( I,n )
+%n*n的中值滤波器对A滤波,其中n为大于零的奇数
+%   此处显示详细说明
+[M,N]=size(I);
+o=zeros(M,N);
+a=(n-1)/2;   %补充长度
+A=zeros(n,n);   %临时存储去除的n*n数据
+med=(n*n+1)/2;   %med指向中间值
+x=zeros(M+2*a,N+2*a);  %填充后的矩阵
+for i=1:M;
+    for j=1:N
+        x(i+a,j+a)=I(i,j);
+    end
+end
+
+for i=a+1:M+a
+    for j=a+1:N+a
+         k=1; 
+         for I=i-a:i+a
+            for J=j-a:j+a
+                A(k)=x(I,J);
+                k=k+1;
+            end
+         end
+        s=sort(A(:)); %sort(a(:)) 对矩阵a排序 b=sort(a(:)) b(i)就可以取出排序后第i位元素
+        o(i-a,j-a)=s(med);
+    end
+end
+
+
+卷积函数
+
+function [ o ] = filt( I,m )
+%堆矩阵I实现卷积核为m的卷积，在高斯滤波时也使用次函数，因为高斯产生的m是旋转不变的，因此卷积与相关结果相同
+%   此处显示详细说明
+[M,N]=size(I);
+o=zeros(M,N);
+n=size(m,1);
+a=(n-1)/2;   %补充长度
+A=zeros(n,n);   %临时存储去的n*n数据
+x=zeros(M+2*a,N+2*a);  %填充后的矩阵
+for i=1:M;
+    for j=1:N
+        x(i+a,j+a)=I(i,j);
+    end
+end
+
+for i=a+1:M+a
+    for j=a+1:N+a
+         k=1; 
+         for I=i+a:-1:i-a
+            for J=j+a:-1:j-a
+                A(k)=x(I,J);
+                k=k+1;
+            end
+         end
+        s=A.*m;  %模板和对应位置相乘
+        S=sum(s(:));
+        o(i-a,j-a)= S ;
+    end
+end
+
+2.四种边缘检测
+
+I3=imread('test3_corrupt.pgm');
+I4=imread('test4copy.bmp');
+%unsharp masking
+figure(1)
+subplot(221);imshow(I3);title('原图');
+u3=usmask(I3);
+subplot(222);
+imshow(uint8(u3));title('unsharp masking结果');
+subplot(223);imshow(I4);title('原图');
+u4=usmask(I4);
+subplot(224);
+imshow(uint8(u4));title('unsharp masking结果');
+
+%laplace
+figure(2)
+L=[1 1 1;1 -8 1;1 1 1];
+subplot(221);imshow(I3);title('原图');
+L3=filt(I3,L);
+subplot(222);
+imshow(uint8(L3));title('laplace结果');
+subplot(223);imshow(I4);title('原图');
+L4=filt(I4,L);
+subplot(224);
+imshow(uint8(L4));title('laplace结果');
+
+%sobel  利用两次卷积，每次用不同的模板，再将结果取绝对值加和
+figure(3)
+S1=[-1 -2 -1;0 0 0;1 2 1];
+S2=[-1 0 1;-2 0 2;-1 0 1];
+subplot(221);imshow(I3);title('原图');
+S31=filt(I3,S1);S32=filt(I3,S2);
+S3=abs(S31)+abs(S32);
+subplot(222);
+imshow(uint8(S3));title('sobel结果');
+subplot(223);imshow(I4);title('原图');
+S41=filt(I4,S1);S42=filt(I4,S2);
+S4=abs(S41)+abs(S42);
+subplot(224);
+imshow(uint8(S4));title('sobel结果');
+
+%canny  利用自带的edge函数实现
+figure(4)
+subplot(221);imshow(I3);title('原图');
+C3=edge(I3,'Canny');
+subplot(222);
+imshow(C3);title('canny结果');
+subplot(223);imshow(I4);title('原图');
+C4=edge(I4,'Canny');
+subplot(224);
+imshow(C4);title('canny结果');
+
+unsharp masking函数：
+
+function [ o ] = usmask( I )
+%图像模糊，图像做差，结果加和
+%   此处显示详细说明
+t=[1 1 1;1 1 1;1 1 1]*(1/9);
+b=filt(I,t);% 模糊原图（3*3均值）
+i=double(I);
+Model=i-b;% 从原图减去模糊图像
+o=4*Model+i;
+end
+
+gauss滤波器生成函数
+
+function [ m ] = gauss( n,c )
+%生成n*n的方差为c的高斯低通模板
+m=zeros(n,n);
+k=1;
+pi=3.1415;
+a=(n-1)/2;
+for i=-a:a
+    for j=-a:a
+        m(k)=(1/(2*pi*c^2))*exp(-(i^2+j^2)/(2*c^2));
+        k=k+1;
+    end
+end
+m=m/sum(m(:));   %将模板归一化使得模板和为1
+end
